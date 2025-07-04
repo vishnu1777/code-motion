@@ -1,36 +1,154 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# DSA Algorithm Visualizer
+
+An interactive Data Structures and Algorithms (DSA) visualizer that uses AI to analyze your code and generate step-by-step visualizations.
+
+## Features
+
+- 🤖 **AI-Powered Analysis**: Uses OpenAI GPT-4 to analyze your algorithm code
+- 🔍 **Automatic Detection**: Detects data structures (stack, queue, array, linked list, tree, hash table)
+- 📊 **Dynamic Visualization**: Real-time visualization of algorithm execution
+- 🎯 **Step-by-Step Execution**: Navigate through each step of your algorithm
+- 📝 **Educational Explanations**: Get detailed AI explanations of how your algorithm works
+- 🎮 **Interactive Controls**: Play, pause, step forward/backward through execution
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18+ 
+- OpenAI API key
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up your OpenAI API key:
+   - Copy `.env.local.example` to `.env.local`
+   - Add your OpenAI API key:
+     ```
+     OPENAI_API_KEY=your_api_key_here
+     ```
+
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## How to Use
+
+1. **Enter Your Algorithm**: Paste your algorithm code in the code editor
+2. **Provide Input Data**: Enter the input data for your algorithm
+3. **Analyze with AI**: Click "Analyze with AI" to let the system detect and analyze your algorithm
+4. **Watch the Visualization**: Use the controls to step through or auto-play the visualization
+5. **Learn**: Read the AI-generated explanation to understand how your algorithm works
+
+## Supported Data Structures
+
+- **Stack**: LIFO operations (push, pop)
+- **Queue**: FIFO operations (enqueue, dequeue) 
+- **Array**: Index-based operations and sorting
+- **Linked List**: Node-based linear data structure
+- **Tree**: Hierarchical data structure
+- **Hash Table**: Key-value pair storage
+
+## Example Algorithms
+
+### Bubble Sort
+```javascript
+function bubbleSort(arr) {
+    const n = arr.length;
+    
+    for (let i = 0; i < n - 1; i++) {
+        for (let j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                const temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+    
+    return arr;
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Stack Implementation
+```javascript
+function isValidParentheses(s) {
+    const stack = [];
+    const pairs = { '(': ')', '[': ']', '{': '}' };
+    
+    for (let char of s) {
+        if (pairs[char]) {
+            stack.push(char);
+        } else {
+            const last = stack.pop();
+            if (pairs[last] !== char) {
+                return false;
+            }
+        }
+    }
+    
+    return stack.length === 0;
+}
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Technologies Used
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Next.js 15** - React framework
+- **React 19** - UI library
+- **Tailwind CSS** - Styling
+- **OpenAI API** - AI analysis
+- **Lucide React** - Icons
 
-## Learn More
+## API Endpoints
 
-To learn more about Next.js, take a look at the following resources:
+### POST /api/analyze-algorithm
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Analyzes algorithm code using OpenAI GPT-4.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Request Body:**
+```json
+{
+  "code": "function bubbleSort(arr) { ... }",
+  "input": "[64, 34, 25, 12, 22, 11, 90]"
+}
+```
 
-## Deploy on Vercel
+**Response:**
+```json
+{
+  "algorithmType": "array",
+  "explanation": "Detailed explanation...",
+  "steps": [
+    {
+      "id": 0,
+      "description": "Step description",
+      "highlight": "Code being executed",
+      "variables": { "i": 0, "j": 0 },
+      "dataStructure": { "array": [64, 34, 25, 12, 22, 11, 90] }
+    }
+  ]
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contributing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For support, please open an issue on GitHub or contact the maintainers.
