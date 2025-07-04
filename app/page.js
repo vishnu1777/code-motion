@@ -1,106 +1,67 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, SkipForward, SkipBack, RotateCcw, Code, Brain, Eye } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, RotateCcw, Code, Brain, Eye, Loader2 } from 'lucide-react';
 
 const DSAVisualizer = () => {
-  const [code, setCode] = useState(`function twoSum(nums, target) {
-    const stack = [];
-    const result = [];
+  const [code, setCode] = useState(`function bubbleSort(arr) {
+    const n = arr.length;
     
-    for (let i = 0; i < nums.length; i++) {
-        stack.push(nums[i]);
-        
-        if (stack.length >= 2) {
-            const b = stack.pop();
-            const a = stack.pop();
-            
-            if (a + b === target) {
-                result.push([a, b]);
-            } else {
-                stack.push(a, b);
+    for (let i = 0; i < n - 1; i++) {
+        for (let j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                // Swap elements
+                const temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
             }
         }
     }
     
-    return result;
+    return arr;
 }`);
 
-  const [input, setInput] = useState('[2, 7, 11, 15], target: 9');
-  const [algorithmType, setAlgorithmType] = useState('stack');
+  const [input, setInput] = useState('[64, 34, 25, 12, 22, 11, 90]');
+  const [algorithmType, setAlgorithmType] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [explanation, setExplanation] = useState('');
   const [steps, setSteps] = useState([]);
-  const [variables, setVariables] = useState({});
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState('');
 
-  // Sample algorithm detection and step generation
-  const detectAlgorithm = (code) => {
-    if (code.includes('stack') || code.includes('push') || code.includes('pop')) return 'stack';
-    if (code.includes('queue') || code.includes('enqueue') || code.includes('dequeue')) return 'queue';
-    if (code.includes('graph') || code.includes('dfs') || code.includes('bfs')) return 'graph';
-    if (code.includes('sliding') || code.includes('window')) return 'sliding-window';
-    if (code.includes('two') && code.includes('pointer')) return 'two-pointers';
-    return 'array';
-  };
+  const analyzeAlgorithm = async () => {
+    setIsAnalyzing(true);
+    setError('');
 
-  const generateSteps = () => {
-    const type = detectAlgorithm(code);
-    setAlgorithmType(type);
+    try {
+      const response = await fetch('/api/analyze-algorithm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code, input }),
+      });
 
-    // Mock step generation based on algorithm type
-    if (type === 'stack') {
-      setSteps([
-        {
-          id: 0,
-          description: 'Initialize empty stack and result array',
-          stack: [],
-          variables: { i: 0, nums: [2, 7, 11, 15], target: 9, result: [] },
-          highlight: 'const stack = []; const result = [];'
-        },
-        {
-          id: 1,
-          description: 'Start loop: i = 0, push nums[0] = 2 to stack',
-          stack: [2],
-          variables: { i: 0, nums: [2, 7, 11, 15], target: 9, result: [] },
-          highlight: 'stack.push(nums[i]);'
-        },
-        {
-          id: 2,
-          description: 'Stack length < 2, continue to next iteration',
-          stack: [2],
-          variables: { i: 1, nums: [2, 7, 11, 15], target: 9, result: [] },
-          highlight: 'if (stack.length >= 2)'
-        },
-        {
-          id: 3,
-          description: 'i = 1, push nums[1] = 7 to stack',
-          stack: [2, 7],
-          variables: { i: 1, nums: [2, 7, 11, 15], target: 9, result: [] },
-          highlight: 'stack.push(nums[i]);'
-        },
-        {
-          id: 4,
-          description: 'Stack length >= 2, pop b = 7, then a = 2',
-          stack: [],
-          variables: { i: 1, nums: [2, 7, 11, 15], target: 9, result: [], a: 2, b: 7 },
-          highlight: 'const b = stack.pop(); const a = stack.pop();'
-        },
-        {
-          id: 5,
-          description: 'Check: a + b = 2 + 7 = 9 === target (9) ✓',
-          stack: [],
-          variables: { i: 1, nums: [2, 7, 11, 15], target: 9, result: [[2, 7]], a: 2, b: 7 },
-          highlight: 'if (a + b === target)'
-        }
-      ]);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to analyze algorithm');
+      }
+
+      const data = await response.json();
+
+      setAlgorithmType(data.algorithmType || 'other');
+      setExplanation(data.explanation || 'No explanation available');
+      setSteps(data.steps || []);
+      setCurrentStep(0);
+      setIsPlaying(false);
+
+    } catch (err) {
+      setError(`Failed to analyze algorithm: ${err.message}`);
+      console.error('Analysis error:', err);
+    } finally {
+      setIsAnalyzing(false);
     }
-
-    setExplanation(`Detected Algorithm: ${type.toUpperCase()}\n\nThis algorithm uses a stack data structure to solve the two-sum problem. It processes elements one by one, maintaining a stack of potential candidates and checking pairs when the stack has at least 2 elements.`);
   };
-
-  useEffect(() => {
-    generateSteps();
-  }, [code]);
 
   useEffect(() => {
     let interval;
@@ -117,13 +78,15 @@ const DSAVisualizer = () => {
   const currentStepData = steps[currentStep] || {};
 
   const renderVisualization = () => {
+    const dataStructure = currentStepData.dataStructure || {};
+
     switch (algorithmType) {
       case 'stack':
         return (
           <div className="flex flex-col items-center space-y-4">
             <div className="text-lg font-semibold text-gray-700">Stack Visualization</div>
             <div className="flex flex-col-reverse space-y-reverse space-y-2 min-h-[200px] justify-end">
-              {(currentStepData.stack || []).map((item, index) => (
+              {(dataStructure.stack || []).map((item, index) => (
                 <div
                   key={index}
                   className="w-16 h-12 bg-blue-500 text-white flex items-center justify-center rounded font-bold shadow-lg transform transition-all duration-500 hover:scale-105"
@@ -134,14 +97,14 @@ const DSAVisualizer = () => {
                   {item}
                 </div>
               ))}
-              {(currentStepData.stack || []).length === 0 && (
+              {(dataStructure.stack || []).length === 0 && (
                 <div className="w-16 h-12 border-2 border-dashed border-gray-300 flex items-center justify-center rounded text-gray-400">
                   Empty
                 </div>
               )}
             </div>
             <div className="text-sm text-gray-600">
-              Stack Size: {(currentStepData.stack || []).length}
+              Stack Size: {(dataStructure.stack || []).length}
             </div>
           </div>
         );
@@ -151,9 +114,101 @@ const DSAVisualizer = () => {
           <div className="flex flex-col items-center space-y-4">
             <div className="text-lg font-semibold text-gray-700">Queue Visualization</div>
             <div className="flex space-x-2 min-w-[300px] justify-center">
-              {(currentStepData.queue || []).map((item, index) => (
-                <div key={index} className="w-12 h-12 bg-green-500 text-white flex items-center justify-center rounded">
+              {(dataStructure.queue || []).map((item, index) => (
+                <div
+                  key={index}
+                  className="w-12 h-12 bg-green-500 text-white flex items-center justify-center rounded font-bold shadow-lg"
+                >
                   {item}
+                </div>
+              ))}
+              {(dataStructure.queue || []).length === 0 && (
+                <div className="w-12 h-12 border-2 border-dashed border-gray-300 flex items-center justify-center rounded text-gray-400">
+                  Empty
+                </div>
+              )}
+            </div>
+            <div className="text-sm text-gray-600">
+              Queue Size: {(dataStructure.queue || []).length}
+            </div>
+          </div>
+        );
+
+      case 'array':
+        return (
+          <div className="flex flex-col items-center space-y-4">
+            <div className="text-lg font-semibold text-gray-700">Array Visualization</div>
+            <div className="flex space-x-1">
+              {(dataStructure.array || []).map((item, index) => (
+                <div
+                  key={index}
+                  className={`w-12 h-12 flex items-center justify-center rounded border-2 transition-all duration-300 ${index === dataStructure.currentIndex
+                    ? 'bg-yellow-200 border-yellow-500 scale-110'
+                    : 'bg-gray-100 border-gray-300'
+                    }`}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+            {dataStructure.currentIndex !== undefined && (
+              <div className="text-sm text-gray-600">
+                Current Index: {dataStructure.currentIndex}
+              </div>
+            )}
+          </div>
+        );
+
+      case 'linkedlist':
+        return (
+          <div className="flex flex-col items-center space-y-4">
+            <div className="text-lg font-semibold text-gray-700">Linked List Visualization</div>
+            <div className="flex items-center space-x-2">
+              {(dataStructure.linkedlist || []).map((item, index) => (
+                <React.Fragment key={index}>
+                  <div className="w-12 h-12 bg-purple-500 text-white flex items-center justify-center rounded font-bold">
+                    {item}
+                  </div>
+                  {index < (dataStructure.linkedlist || []).length - 1 && (
+                    <div className="text-gray-400">→</div>
+                  )}
+                </React.Fragment>
+              ))}
+              {(dataStructure.linkedlist || []).length === 0 && (
+                <div className="w-12 h-12 border-2 border-dashed border-gray-300 flex items-center justify-center rounded text-gray-400">
+                  NULL
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'tree':
+        return (
+          <div className="flex flex-col items-center space-y-4">
+            <div className="text-lg font-semibold text-gray-700">Tree Visualization</div>
+            <div className="text-sm text-gray-600">
+              Tree visualization - {(dataStructure.tree || []).length} nodes
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {(dataStructure.tree || []).map((item, index) => (
+                <div key={index} className="w-10 h-10 bg-indigo-500 text-white flex items-center justify-center rounded">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'hash':
+        return (
+          <div className="flex flex-col items-center space-y-4">
+            <div className="text-lg font-semibold text-gray-700">Hash Table Visualization</div>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(dataStructure.hash || {}).map(([key, value]) => (
+                <div key={key} className="flex items-center space-x-2 bg-orange-100 p-2 rounded">
+                  <span className="font-mono text-orange-600">{key}:</span>
+                  <span className="font-mono">{value}</span>
                 </div>
               ))}
             </div>
@@ -163,17 +218,23 @@ const DSAVisualizer = () => {
       default:
         return (
           <div className="flex flex-col items-center space-y-4">
-            <div className="text-lg font-semibold text-gray-700">Array Visualization</div>
-            <div className="flex space-x-1">
-              {(currentStepData.variables?.nums || []).map((item, index) => (
-                <div
-                  key={index}
-                  className={`w-12 h-12 flex items-center justify-center rounded border-2 ${index === currentStepData.variables?.i ? 'bg-yellow-200 border-yellow-500' : 'bg-gray-100 border-gray-300'
-                    }`}
-                >
-                  {item}
+            <div className="text-lg font-semibold text-gray-700">
+              {algorithmType ? `${algorithmType.toUpperCase()} Visualization` : 'Algorithm Visualization'}
+            </div>
+            <div className="text-center text-gray-500 p-8">
+              {steps.length === 0 ? (
+                <div>
+                  <Brain className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p>Click "Analyze with AI" to visualize your algorithm</p>
                 </div>
-              ))}
+              ) : (
+                <div>
+                  <p>Visualization for {algorithmType} algorithm</p>
+                  <div className="mt-4 text-sm">
+                    Step {currentStep + 1} of {steps.length}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -182,6 +243,8 @@ const DSAVisualizer = () => {
 
   const renderVariables = () => {
     const vars = currentStepData.variables || {};
+    if (Object.keys(vars).length === 0) return null;
+
     return (
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="font-semibold text-gray-700 mb-2">Variables</h3>
@@ -235,7 +298,31 @@ const DSAVisualizer = () => {
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter input data..."
                 />
+                <button
+                  onClick={analyzeAlgorithm}
+                  disabled={isAnalyzing || !code.trim()}
+                  className="mt-3 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Analyzing with AI...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-5 h-5" />
+                      <span>Analyze with AI</span>
+                    </>
+                  )}
+                </button>
               </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="text-red-800 font-semibold">Error</div>
+                  <div className="text-red-600 text-sm mt-1">{error}</div>
+                </div>
+              )}
 
               <div className="bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center space-x-2 mb-3">
@@ -243,7 +330,7 @@ const DSAVisualizer = () => {
                   <h2 className="text-lg font-semibold text-blue-700">AI Explanation</h2>
                 </div>
                 <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                  {explanation || "Click 'Analyze' to get AI explanation..."}
+                  {explanation || "Click 'Analyze with AI' to get detailed explanation of your algorithm..."}
                 </div>
               </div>
             </div>
@@ -326,8 +413,15 @@ const DSAVisualizer = () => {
 
           {/* Algorithm Type Badge */}
           <div className="px-6 pb-6">
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-              Detected: {algorithmType.toUpperCase()}
+            <div className="flex items-center justify-between">
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                {algorithmType ? `Detected: ${algorithmType.toUpperCase()}` : 'Algorithm not analyzed yet'}
+              </div>
+              {steps.length > 0 && (
+                <div className="text-sm text-gray-500">
+                  Total Steps: {steps.length}
+                </div>
+              )}
             </div>
           </div>
         </div>
